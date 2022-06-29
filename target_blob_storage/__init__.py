@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-import os
-import json
 import argparse
+import json
 import logging
+import os
 
-from datetime import datetime, timedelta
-from azure.storage.blob import BlobServiceClient, generate_account_sas, ResourceTypes, AccountSasPermissions, __version__
+from azure.storage.blob import BlobServiceClient, __version__
 
 logger = logging.getLogger("target-blob-storage")
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
 
 def load_json(path):
     with open(path) as f:
@@ -16,7 +18,7 @@ def load_json(path):
 
 
 def parse_args():
-    '''Parse standard command-line args.
+    """Parse standard command-line args.
     Parses the command-line arguments mentioned in the SPEC and the
     BEST_PRACTICES documents:
     -c,--config     Config file
@@ -27,17 +29,14 @@ def parse_args():
     Returns the parsed args object from argparse. For each argument that
     point to JSON files (config, state, properties), we will automatically
     load and parse the JSON file.
-    '''
+    """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '-c', '--config',
-        help='Config file',
-        required=True)
+    parser.add_argument("-c", "--config", help="Config file", required=True)
 
     args = parser.parse_args()
     if args.config:
-        setattr(args, 'config_path', args.config)
+        setattr(args, "config_path", args.config)
         args.config = load_json(args.config)
 
     return args
@@ -46,20 +45,22 @@ def parse_args():
 def upload(args):
     logger.info(f"Exporting data...")
     config = args.config
-    container_name = config['container']
-    target_path = config['path_prefix']
-    local_path = config['input_path']
-    sas_token = config['sas_token']
+    container_name = config["container"]
+    target_path = config["path_prefix"]
+    local_path = config["input_path"]
+    sas_token = config["sas_token"]
 
     # Upload all data in input_path to Azure Blob Storage
-    sas_url = f'{target_path}/{container_name}?{sas_token}'
+    sas_url = f"{target_path}/{container_name}?{sas_token}"
     blob_service_client = BlobServiceClient(account_url=sas_url)
 
     for root, dirs, files in os.walk(local_path):
         for file in files:
             file_path = os.path.join(root, file)
             remote_file_path = file_path.replace(local_path, target_path)
-            blob_client = blob_service_client.get_blob_client(container=container_name, blob=remote_file_path)
+            blob_client = blob_service_client.get_blob_client(
+                container=container_name, blob=remote_file_path
+            )
 
             # Upload the created file
             with open(file_path, "rb") as data:
